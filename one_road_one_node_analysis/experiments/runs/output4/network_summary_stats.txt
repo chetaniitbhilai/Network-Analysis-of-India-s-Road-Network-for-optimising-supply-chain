@@ -1,0 +1,12 @@
+Number of Nodes: 1412
+Number of Edges: 2477
+Density: 0.0024865333689365024
+Average Degree: 3.508498583569405
+Diameter: 47
+Average Path Length: 14.311685944974563
+Number of Communities: 26
+Modularity: 0.896451878884445
+Largest Community Size: 114
+Max Betweenness: 508812.1016205674
+Max Closeness: 0.8
+Max Degree: 34

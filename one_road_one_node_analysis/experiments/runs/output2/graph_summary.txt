@@ -1,0 +1,6 @@
+Original graph: IGRAPH U--- 2222 3272 -- 
+Filtered graph: IGRAPH U--- 1412 2477 -- 
+Nodes removed: 810
+Edges removed: 795
+Average degree before filtering: 2.95
+Average degree after filtering: 3.51

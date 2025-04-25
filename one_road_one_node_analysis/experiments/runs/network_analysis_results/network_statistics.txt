@@ -1,0 +1,17 @@
+ROAD NETWORK ANALYSIS SUMMARY
+=============================
+
+Number of nodes: 2222
+Number of edges: 3272
+Average degree: 2.95
+Network density: 0.001326
+Network diameter: 47
+Average path length: 14.56
+Number of connected components: 18
+Largest component size: 2196 nodes (98.8% of network)
+
+Centrality Statistics
+--------------------
+Betweenness: max=1234323.92, mean=14710.36, median=3.00
+Closeness: max=1.0000, mean=nan, median=nan
+PageRank: max=0.0066, mean=0.0005, median=0.0003
