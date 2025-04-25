@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road Network Analysis - Job Status</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        }
+        .progress-container {
+            height: 12px;
+            background-color: #e2e8f0;
+            border-radius: 9999px;
+            position: relative;
+            overflow: hidden;
+        }
+        .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+        border-radius: 9999px;
+        transition: width 0.5s ease;
+        /* width will be set dynamically in JS or inline style */
+    }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+        .status-icon-processing {
+            color: #3b82f6;
+            animation: spin 2s linear infinite;
+        }
+        .status-icon-completed {
+            color: #10b981;
+        }
+        .status-icon-failed {
+            color: #ef4444;
+        }
+        .status-icon-queued {
+            color: #f59e0b;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <a href="/" class="flex items-center">
+                        <i class="fas fa-route text-3xl mr-3"></i>
+                        <h1 class="text-2xl md:text-3xl font-bold">Road Network Analysis</h1>
+                    </a>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/" class="bg-white text-blue-900 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition">
+                        <i class="fas fa-home mr-2"></i>Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-3xl mx-auto">
+            <!-- Job Status Card -->
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Job Status</h2>
+                    <div class="text-sm bg-gray-100 px-3 py-1 rounded-full text-gray-600">
+                        ID: <span class="font-mono">{{ job_id }}</span>
+                    </div>
+                </div>
+
+                <!-- Status Information -->
+                <div class="mb-6">
+                    <div class="flex items-center mb-4">
+                        {% if status.status == 'processing' %}
+                            <i class="fas fa-cog status-icon-processing text-2xl mr-3"></i>
+                            <span class="text-lg font-medium text-blue-600">Processing</span>
+                        {% elif status.status == 'completed' %}
+                            <i class="fas fa-check-circle status-icon-completed text-2xl mr-3"></i>
+                            <span class="text-lg font-medium text-green-600">Completed</span>
+                        {% elif status.status == 'failed' %}
+                            <i class="fas fa-times-circle status-icon-failed text-2xl mr-3"></i>
+                            <span class="text-lg font-medium text-red-600">Failed</span>
+                        {% elif status.status == 'queued' %}
+                            <i class="fas fa-clock status-icon-queued text-2xl mr-3"></i>
+                            <span class="text-lg font-medium text-yellow-600">Queued</span>
+                        {% else %}
+                            <i class="fas fa-question-circle text-2xl mr-3 text-gray-500"></i>
+                            <span class="text-lg font-medium text-gray-600">Unknown</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-700 font-medium">Progress</span>
+                            <span class="text-gray-700 font-medium">{{ status.progress }}%</span>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: {{ status.progress|default(0) }}%"></div>
+
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <p class="text-gray-700">
+                            <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                            <span id="status-message">{{ status.message }}</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
+                    {% if status.status == 'completed' %}
+                        <a href="/results/{{ job_id }}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium text-center hover:bg-blue-700 transition">
+                            <i class="fas fa-chart-bar mr-2"></i>View Results
+                        </a>
+                    {% endif %}
+                    
+                    <a href="/" class="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium text-center hover:bg-gray-200 transition">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+
+            <!-- Processing Details -->
+            {% if status.status == 'processing' %}
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Processing Information</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex items-center">
+                            <i class="fas fa-clock text-blue-500 mr-2"></i>
+                            <span class="text-gray-700 font-medium">Started at:</span>
+                        </div>
+                        <p class="text-gray-600 ml-6">{{ status.timestamp if status.timestamp else 'Not available' }}</p>
+                    </div>
+                    
+                    <div>
+                        <div class="flex items-center">
+                            <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+                            <span class="text-gray-700 font-medium">Tips:</span>
+                        </div>
+                        <ul class="text-gray-600 ml-6 list-disc list-inside space-y-1 mt-2">
+                            <li>Processing time depends on the size and complexity of your network</li>
+                            <li>Larger networks with many nodes may take several minutes to analyze</li>
+                            <li>This page will automatically update to show progress</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Error Details -->
+            {% if status.status == 'failed' %}
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Error Details</h3>
+                
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <p class="text-red-700 font-mono text-sm whitespace-pre-wrap">{{ status.message }}</p>
+                </div>
+                
+                <div class="mt-4">
+                    <p class="text-gray-700">
+                        <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                        If you continue experiencing issues, please check your input data format or try with a smaller dataset.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 mt-auto">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <i class="fas fa-route text-2xl mr-2"></i>
+                        <h2 class="text-xl font-bold">Road Network Analysis</h2>
+                    </div>
+                    <p class="text-gray-400 mt-2">Advanced network analysis for urban planning and logistics</p>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center md:text-left">
+                <p class="text-gray-400 text-sm">
+                    &copy; 2025 Road Network Analysis Tool. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-refresh for processing and queued jobs
+        const currentStatus = "{{ status.status }}";
+        const jobId = "{{ job_id }}";
+        
+        if (currentStatus === 'processing' || currentStatus === 'queued') {
+            // Set up periodic refresh
+            setInterval(updateStatus, 5000); // Check every 5 seconds
+        }
+        
+        async function updateStatus() {
+            try {
+                const response = await fetch(`/api/status/${jobId}`);
+                const statusData = await response.json();
+                
+                // Update progress bar
+                const progressBar = document.querySelector('.progress-bar');
+                progressBar.style.width = `${statusData.progress}%`;
+                
+                // Update progress text
+                const progressText = document.querySelector('.progress-container').previousElementSibling.lastElementChild;
+                progressText.textContent = `${statusData.progress}%`;
+                
+                // Update status message
+                document.getElementById('status-message').textContent = statusData.message;
+                
+                // Redirect if completed or failed
+                if (statusData.status === 'completed') {
+                    window.location.href = `/results/${jobId}`;
+                } else if (statusData.status === 'failed') {
+                    window.location.reload();
+                }
+                
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+    </script>
+</body>
+</html>

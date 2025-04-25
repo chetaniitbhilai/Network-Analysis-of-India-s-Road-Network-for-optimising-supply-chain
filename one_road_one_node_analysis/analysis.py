@@ -10,7 +10,7 @@ from matplotlib.collections import LineCollection
 import numpy as np
 import pandas as pd
 # Load GeoJSON
-with open("filtered_output_delhi.geojson", "r") as f:
+with open("filtered_output_2_small.geojson", "r") as f:
     data = json.load(f)
 
 # Filter valid LineStrings

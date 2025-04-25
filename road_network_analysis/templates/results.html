@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road Network Analysis - Results</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .tab-active {
+            border-bottom: 3px solid #3b82f6;
+            color: #1e40af;
+        }
+        .results-table th {
+            background-color: #f1f5f9;
+        }
+        .results-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .results-table tr:hover {
+            background-color: #dbeafe;
+        }
+        .map-container {
+            height: 600px;
+            width: 100%;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .map-container iframe {
+            height: 100%;
+            width: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <a href="/" class="flex items-center">
+                        <i class="fas fa-route text-3xl mr-3"></i>
+                        <h1 class="text-2xl md:text-3xl font-bold">Road Network Analysis</h1>
+                    </a>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/" class="bg-white text-blue-900 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition">
+                        <i class="fas fa-home mr-2"></i>Home
+                    </a>
+                    <button id="downloadAllBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 transition">
+                        <i class="fas fa-download mr-2"></i>Download All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Results Header -->
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Analysis Results</h2>
+            <p class="text-gray-600">
+                Job ID: <span class="font-mono">{{ job_id }}</span>
+            </p>
+        </div>
+
+        <!-- Interactive Map -->
+        <div class="mb-12">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">Interactive Map Visualization</h3>
+            <div class="map-container">
+                <iframe src="{{ map_path }}" title="Road Network Analysis Map"></iframe>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <a href="{{ map_path }}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-external-link-alt mr-2"></i>
+                    Open in full screen
+                </a>
+            </div>
+        </div>
+        
+        <!-- Results Tabs -->
+        <div class="mb-12">
+            <div class="border-b border-gray-200">
+                <nav class="flex -mb-px">
+                    <button class="tab-button tab-active px-4 py-3 text-lg font-medium" data-tab="warehouses">
+                        <i class="fas fa-industry mr-2"></i>
+                        Optimal Warehouse Locations
+                    </button>
+                    <button class="tab-button px-4 py-3 text-lg font-medium text-gray-500" data-tab="emergency">
+                        <i class="fas fa-ambulance mr-2"></i>
+                        Emergency Service Locations
+                    </button>
+                    <button class="tab-button px-4 py-3 text-lg font-medium text-gray-500" data-tab="congestion">
+                        <i class="fas fa-traffic-light mr-2"></i>
+                        Traffic Congestion Points
+                    </button>
+                </nav>
+            </div>
+            
+            <!-- Warehouses Tab -->
+            <div id="warehouses-tab" class="tab-content py-6">
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <div class="lg:w-2/3">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h4 class="text-xl font-bold text-gray-800">Top Warehouse Locations</h4>
+                                <a href="/results/{{ job_id }}/warehouse_analysis/warehouse_rankings.csv" class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-download mr-1"></i> Download CSV
+                                </a>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="results-table min-w-full border border-gray-200 text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="py-3 px-4 text-left">Rank</th>
+                                            <th class="py-3 px-4 text-left">Node ID</th>
+                                            <th class="py-3 px-4 text-left">Combined Score</th>
+                                            <th class="py-3 px-4 text-left">Road Diversity</th>
+                                            <th class="py-3 px-4 text-left">Major Road Access</th>
+                                            <th class="py-3 px-4 text-left">Coordinates</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for warehouse in warehouses %}
+                                        <tr>
+                                            <td class="py-3 px-4 font-medium">{{ loop.index }}</td>
+                                            <td class="py-3 px-4 font-mono text-xs">{{ warehouse.node }}</td>
+                                            <td class="py-3 px-4">{{ "%.4f"|format(warehouse.combined_score) }}</td>
+                                            <td class="py-3 px-4">{{ warehouse.road_diversity }}</td>
+                                            <td class="py-3 px-4">{{ warehouse.major_road_access }}</td>
+                                            <td class="py-3 px-4 font-mono text-xs">
+                                                {{ "%.6f"|format(warehouse.latitude) }}, {{ "%.6f"|format(warehouse.longitude) }}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="lg:w-1/3">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h4 class="text-xl font-bold text-gray-800 mb-4">Analysis Summary</h4>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <h5 class="text-lg font-medium text-gray-700 mb-2">Methodology</h5>
+                                    <p class="text-gray-600">
+                                        Optimal warehouse locations were determined using a combination of centrality measures, 
+                                        road type diversity, and accessibility to major roads, with a minimum distance constraint 
+                                        to ensure spatial distribution.
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <h5 class="text-lg font-medium text-gray-700 mb-2">Key Findings</h5>
+                                    <ul class="list-disc list-inside text-gray-600 space-y-1">
+                                        <li>Locations with high betweenness centrality score better</li>
+                                        <li>Nodes connected to diverse road types are preferred</li>
+                                        <li>Access to major roads (primary, secondary, trunk) improves ranking</li>
+                                        <li>Warehouses are spaced to ensure optimal coverage</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Emergency Services Tab -->
+            <div id="emergency-tab" class="tab-content py-6 hidden">
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <div class="lg:w-2/3">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h4 class="text-xl font-bold text-gray-800">Emergency Service Locations</h4>
+                                <a href="/results/{{ job_id }}/network_applications/emergency_service_locations.csv" class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-download mr-1"></i> Download CSV
+                                </a>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="results-table min-w-full border border-gray-200 text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="py-3 px-4 text-left">Rank</th>
+                                            <th class="py-3 px-4 text-left">Node ID</th>
+                                            <th class="py-3 px-4 text-left">Score</th>
+                                            <th class="py-3 px-4 text-left">Coordinates</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for location in emergency_services %}
+                                        <tr>
+                                            <td class="py-3 px-4 font-medium">{{ loop.index }}</td>
+                                            <td class="py-3 px-4 font-mono text-xs">{{ location.node }}</td>
+                                            <td class="py-3 px-4">{{ "%.4f"|format(location.score) }}</td>
+                                            <td class="py-3 px-4 font-mono text-xs">
+                                                {{ "%.6f"|format(location.latitude) }}, {{ "%.6f"|format(location.longitude) }}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="lg:w-1/3">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h4 class="text-xl font-bold text-gray-800 mb-4">Emergency Services Insights</h4>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <h5 class="text-lg font-medium text-gray-700 mb-2">Methodology</h5>
+                                    <p class="text-gray-600">
+                                        Emergency service locations prioritize network centrality with an emphasis on 
+                                        betweenness and closeness, ensuring quick access to all areas of the network.
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <h5 class="text-lg font-medium text-gray-700 mb-2">Key Benefits</h5>
+                                    <ul class="list-disc list-inside text-gray-600 space-y-1">
+                                        <li>Minimized response times across the network</li>
+                                        <li>Strategic positioning for maximum coverage</li>
+                                        <li>Spatial distribution ensures no area is underserved</li>
+                                        <li>Locations account for network flow and accessibility</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Congestion Tab -->
+            <div id="congestion-tab" class="tab-content py-6 hidden">
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <div class="lg:w-2/3">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h4 class="text-xl font-bold text-gray-800">Traffic Congestion Points</h4>
+                                <a href="/results/{{ job_id }}/network_applications/traffic_congestion_points.csv" class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-download mr-1"></i> Download CSV
+                                </a>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="results-table min-w-full border border-gray-200 text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="py-3 px-4 text-left">Rank</th>
+                                            <th class="py-3 px-4 text-left">Edge</th>
+                                            <th class="py-3 px-4 text-left">Betweenness</th>
+                                            <th class="py-3 px-4 text-left">Road Type</th>
+                                            <th class="py-3 px-4 text-left">Coordinates</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for point in congestion_points %}
+                                        <tr>
+                                            <td class="py-3 px-4 font-medium">{{ loop.index }}</td>
+                                            <td class="py-3 px-4 font-mono text-xs">{{ point.edge }}</td>
+                                            <td class="py-3 px-4">{{ "%.6f"|format(point.betweenness) }}</td>
+                                            <td class="py-3 px-4">{{ point.road_type }}</td>
+                                            <td class="py-3 px-4 font-mono text-xs">
+                                                {{ "%.6f"|format(point.latitude) }}, {{ "%.6f"|format(point.longitude) }}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="lg:w-1/3">
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h4 class="text-xl font-bold text-gray-800 mb-4">Congestion Analysis</h4>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <h5 class="text-lg font-medium text-gray-700 mb-2">Methodology</h5>
+                                    <p class="text-gray-600">
+                                        Traffic congestion points are identified using edge betweenness centrality, 
+                                        which measures how often an edge appears on shortest paths between nodes in the network.
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <h5 class="text-lg font-medium text-gray-700 mb-2">Applications</h5>
+                                    <ul class="list-disc list-inside text-gray-600 space-y-1">
+                                        <li>Identify bottlenecks for infrastructure improvements</li>
+                                        <li>Prioritize traffic management solutions</li>
+                                        <li>Plan alternative routes and detours</li>
+                                        <li>Forecast potential congestion in network growth</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Additional Analysis -->
+        <div class="mb-12">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">Additional Analysis Resources</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Centrality Measures -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover transition-all">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
+                            <i class="fas fa-project-diagram text-xl"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-800">Centrality Measures</h4>
+                    </div>
+                    <p class="text-gray-600 mb-4">
+                        Detailed analysis of network nodes using multiple centrality algorithms including betweenness, 
+                        closeness, degree, and PageRank.
+                    </p>
+                    <a href="/results/{{ job_id }}/centrality_results/all_centrality_measures.json" class="text-blue-600 hover:text-blue-800 flex items-center">
+                        <i class="fas fa-download mr-2"></i> Download JSON
+                    </a>
+                </div>
+                
+                <!-- Network Graph -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover transition-all">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 mr-4">
+                            <i class="fas fa-sitemap text-xl"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-800">Processed Network Graph</h4>
+                    </div>
+                    <p class="text-gray-600 mb-4">
+                        The complete network graph data in machine-readable format for integration with 
+                        other analysis tools or custom visualizations.
+                    </p>
+                    <a href="/results/{{ job_id }}/processed_network/graph.pickle" class="text-blue-600 hover:text-blue-800 flex items-center">
+                        <i class="fas fa-download mr-2"></i> Download Network Graph
+                    </a>
+                </div>
+                
+                <!-- Statistical Summary -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover transition-all">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-4">
+                            <i class="fas fa-chart-pie text-xl"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-800">Network Statistics</h4>
+                    </div>
+                    <p class="text-gray-600 mb-4">
+                        Comprehensive statistical summary of network properties including density, diameter, 
+                        average path length, and clustering coefficients.
+                    </p>
+                    <a href="/results/{{ job_id }}/network_statistics/summary.json" class="text-blue-600 hover:text-blue-800 flex items-center">
+                        <i class="fas fa-download mr-2"></i> Download Statistics
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Job Metadata -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Analysis Job Details</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="border-b md:border-b-0 md:border-r border-gray-200 pb-4 md:pb-0 md:pr-4">
+                    <h4 class="text-lg font-medium text-gray-700 mb-3">Processing Information</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-start">
+                            <i class="fas fa-clock text-blue-500 mt-1 mr-2"></i>
+                            <div>
+                                <span class="block text-sm font-medium text-gray-700">Processing Time:</span>
+                                <span class="text-gray-600">{{ status.processing_time if status.processing_time else 'Not available' }}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-calendar-check text-green-500 mt-1 mr-2"></i>
+                            <div>
+                                <span class="block text-sm font-medium text-gray-700">Completion Date:</span>
+                                <span class="text-gray-600">{{ status.timestamp if status.timestamp else 'Not available' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pt-4 md:pt-0 md:pl-4">
+                    <h4 class="text-lg font-medium text-gray-700 mb-3">Analysis Parameters</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-start">
+                            <i class="fas fa-code-branch text-purple-500 mt-1 mr-2"></i>
+                            <div>
+                                <span class="block text-sm font-medium text-gray-700">Network Representation:</span>
+                                <span class="text-gray-600">{{ status.params.representation_type if status.params and status.params.representation_type else 'Default' }}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-ruler-horizontal text-yellow-500 mt-1 mr-2"></i>
+                            <div>
+                                <span class="block text-sm font-medium text-gray-700">Minimum Distances:</span>
+                                <span class="text-gray-600">
+                                    Warehouse: {{ status.params.min_warehouse_distance if status.params and status.params.min_warehouse_distance else '500' }}m, 
+                                    Emergency: {{ status.params.min_emergency_distance if status.params and status.params.min_emergency_distance else '300' }}m
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 mt-auto">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <i class="fas fa-route text-2xl mr-2"></i>
+                        <h2 class="text-xl font-bold">Road Network Analysis</h2>
+                    </div>
+                    <p class="text-gray-400 mt-2">Advanced network analysis for urban planning and logistics</p>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center md:text-left">
+                <p class="text-gray-400 text-sm">
+                    &copy; 2025 Road Network Analysis Tool. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Tab switching functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all tabs
+                    tabButtons.forEach(btn => btn.classList.remove('tab-active'));
+                    tabButtons.forEach(btn => btn.classList.add('text-gray-500'));
+                    
+                    // Hide all tab contents
+                    tabContents.forEach(content => content.classList.add('hidden'));
+                    
+                    // Set active tab
+                    this.classList.add('tab-active');
+                    this.classList.remove('text-gray-500');
+                    
+                    // Show active tab content
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+                });
+            });
+            
+            // Download all functionality
+            document.getElementById('downloadAllBtn').addEventListener('click', function() {
+                // Create a list of all downloadable files
+                const downloads = [
+                    `/results/{{ job_id }}/warehouse_analysis/warehouse_rankings.csv`,
+                    `/results/{{ job_id }}/network_applications/emergency_service_locations.csv`,
+                    `/results/{{ job_id }}/network_applications/traffic_congestion_points.csv`,
+                    `/results/{{ job_id }}/centrality_results/all_centrality_measures.json`,
+                    `/results/{{ job_id }}/processed_network/graph.pickle`,
+                    `/results/{{ job_id }}/network_statistics/summary.json`
+                ];
+                
+                // Trigger downloads sequentially
+                downloads.forEach((url, index) => {
+                    setTimeout(() => {
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = url.split('/').pop();
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }, index * 300);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

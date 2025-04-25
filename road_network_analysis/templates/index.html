@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road Network Analysis Tool</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        .feature-icon {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <i class="fas fa-route text-3xl mr-3"></i>
+                    <h1 class="text-2xl md:text-3xl font-bold">Road Network Analysis</h1>
+                </div>
+                <div class="flex space-x-4">
+                    <button class="bg-white text-blue-900 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition">
+                        <i class="fas fa-question-circle mr-2"></i>Help
+                    </button>
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 transition">
+                        <i class="fas fa-book mr-2"></i>Documentation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="mb-12 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Advanced Road Network Analytics</h2>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto mb-8">
+                Upload your GeoJSON road network data and get comprehensive insights including optimal warehouse locations,
+                emergency service placement, and traffic congestion analysis.
+            </p>
+            <div class="flex flex-wrap justify-center gap-4 mb-8">
+                <div class="bg-blue-100 text-blue-800 px-4 py-2 rounded-full">
+                    <i class="fas fa-chart-line mr-1"></i> Centrality Analysis
+                </div>
+                <div class="bg-green-100 text-green-800 px-4 py-2 rounded-full">
+                    <i class="fas fa-industry mr-1"></i> Warehouse Optimization
+                </div>
+                <div class="bg-red-100 text-red-800 px-4 py-2 rounded-full">
+                    <i class="fas fa-plus mr-1"></i> Emergency Services
+                </div>
+                <div class="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full">
+                    <i class="fas fa-car mr-1"></i> Congestion Analysis
+                </div>
+            </div>
+        </section>
+
+        <!-- File Upload Section -->
+        <section class="mb-16 max-w-3xl mx-auto">
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-cloud-upload-alt text-blue-600 mr-2"></i>
+                    Upload Your Network Data
+                </h3>
+                
+                <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data" class="space-y-6">
+                    <!-- File Upload -->
+                    <div id="dropArea" class="upload-area rounded-lg p-8 text-center cursor-pointer">
+                        <input type="file" id="fileInput" name="file" class="hidden" accept=".geojson,.json,.pickle">
+                        <div class="mb-4">
+                            <i class="fas fa-file-upload text-blue-500 text-5xl mb-4"></i>
+                            <p class="text-gray-700 font-medium">Drag & drop your file here or</p>
+                            <button type="button" id="browseBtn" class="text-blue-600 font-bold hover:text-blue-800">
+                                Browse files
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-500">
+                            Supported formats: .geojson, .json, .pickle (Max 50MB)
+                        </p>
+                        <div id="fileDetails" class="hidden mt-4 p-3 bg-blue-50 rounded">
+                            <p class="flex items-center text-blue-700">
+                                <i class="fas fa-file-alt mr-2"></i>
+                                <span id="fileName"></span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Configuration Options -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Representation Type</label>
+                            <select name="representation_type" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="road_as_edge">Road as Edge (Default)</option>
+                                <option value="coordinate_as_node">Coordinate as Node</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">
+                                How to represent the road network as a graph
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Warehouse Minimum Distance (meters)</label>
+                            <input type="number" name="min_warehouse_distance" value="500" min="100" max="5000" 
+                                  class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Emergency Services Min. Distance (meters)</label>
+                            <input type="number" name="min_emergency_distance" value="300" min="100" max="5000" 
+                                  class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center pt-4">
+                        <button type="submit" id="submitBtn" class="bg-blue-600 text-white font-bold px-8 py-3 rounded-lg shadow-lg hover:bg-blue-700 transform transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fas fa-network-wired mr-2"></i>
+                            Analyze Network
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="mb-16">
+            <h3 class="text-2xl font-bold text-center text-gray-800 mb-8">Key Features</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Feature 1 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover transition-all">
+                    <div class="w-14 h-14 rounded-full feature-icon flex items-center justify-center mb-4">
+                        <i class="fas fa-chart-network text-blue-600 text-2xl"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Centrality Analysis</h4>
+                    <p class="text-gray-600">
+                        Calculate betweenness, closeness, degree, and PageRank centrality to identify the most important nodes.
+                    </p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover transition-all">
+                    <div class="w-14 h-14 rounded-full feature-icon flex items-center justify-center mb-4">
+                        <i class="fas fa-industry text-blue-600 text-2xl"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Warehouse Placement</h4>
+                    <p class="text-gray-600">
+                        Identify optimal locations for warehouses based on accessibility, road diversity, and central positioning.
+                    </p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover transition-all">
+                    <div class="w-14 h-14 rounded-full feature-icon flex items-center justify-center mb-4">
+                        <i class="fas fa-ambulance text-blue-600 text-2xl"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Emergency Services</h4>
+                    <p class="text-gray-600">
+                        Determine strategic locations for emergency services to minimize response times across the network.
+                    </p>
+                </div>
+                
+                <!-- Feature 4 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover transition-all">
+                    <div class="w-14 h-14 rounded-full feature-icon flex items-center justify-center mb-4">
+                        <i class="fas fa-traffic-light text-blue-600 text-2xl"></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-2">Congestion Analysis</h4>
+                    <p class="text-gray-600">
+                        Identify potential traffic bottlenecks using edge betweenness centrality and network flow analysis.
+                    </p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- How It Works Section -->
+        <section class="mb-16">
+            <h3 class="text-2xl font-bold text-center text-gray-800 mb-8">How It Works</h3>
+            
+            <div class="max-w-4xl mx-auto">
+                <div class="relative">
+                    <!-- Process Steps -->
+                    <div class="hidden md:block absolute top-1/2 left-0 right-0 h-1 bg-blue-200 transform -translate-y-1/2 z-0"></div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <!-- Step 1 -->
+                        <div class="relative z-10 flex flex-col items-center text-center">
+                            <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mb-4">1</div>
+                            <h4 class="text-lg font-bold text-gray-800 mb-2">Upload Data</h4>
+                            <p class="text-sm text-gray-600">
+                                Upload your GeoJSON road network data
+                            </p>
+                        </div>
+                        
+                        <!-- Step 2 -->
+                        <div class="relative z-10 flex flex-col items-center text-center">
+                            <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mb-4">2</div>
+                            <h4 class="text-lg font-bold text-gray-800 mb-2">Processing</h4>
+                            <p class="text-sm text-gray-600">
+                                Our algorithms analyze the road network structure
+                            </p>
+                        </div>
+                        
+                        <!-- Step 3 -->
+                        <div class="relative z-10 flex flex-col items-center text-center">
+                            <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mb-4">3</div>
+                            <h4 class="text-lg font-bold text-gray-800 mb-2">Analysis</h4>
+                            <p class="text-sm text-gray-600">
+                                Multiple centrality measures and spatial optimization
+                            </p>
+                        </div>
+                        
+                        <!-- Step 4 -->
+                        <div class="relative z-10 flex flex-col items-center text-center">
+                            <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mb-4">4</div>
+                            <h4 class="text-lg font-bold text-gray-800 mb-2">Results</h4>
+                            <p class="text-sm text-gray-600">
+                                View interactive maps and download detailed reports
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <i class="fas fa-route text-2xl mr-2"></i>
+                        <h2 class="text-xl font-bold">Road Network Analysis</h2>
+                    </div>
+                    <p class="text-gray-400 mt-2">Advanced network analysis for urban planning and logistics</p>
+                </div>
+                
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-300 hover:text-white">
+                        <i class="fab fa-github text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white">
+                        <i class="fab fa-twitter text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white">
+                        <i class="fab fa-linkedin text-xl"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center md:text-left">
+                <p class="text-gray-400 text-sm">
+                    &copy; 2025 Road Network Analysis Tool. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // File Upload Handling
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const fileDetails = document.getElementById('fileDetails');
+        const fileName = document.getElementById('fileName');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Browse button click
+        browseBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // File selected
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropArea.classList.add('dragover');
+        }
+
+        function unhighlight() {
+            dropArea.classList.remove('dragover');
+        }
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            handleFileSelect();
+        }
+
+        function handleFileSelect() {
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                
+                // Check file extension
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                if (!['geojson', 'json', 'pickle'].includes(fileExtension)) {
+                    alert('Please upload a supported file format (.geojson, .json, .pickle)');
+                    fileInput.value = '';
+                    return;
+                }
+                
+                // Check file size (50MB limit)
+                if (file.size > 50 * 1024 * 1024) {
+                    alert('File size exceeds 50MB limit');
+                    fileInput.value = '';
+                    return;
+                }
+                
+                fileName.textContent = file.name;
+                fileDetails.classList.remove('hidden');
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Form submission
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            if (fileInput.files.length === 0) {
+                e.preventDefault();
+                alert('Please select a file to upload');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Uploading...';
+            submitBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>
